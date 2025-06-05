@@ -1,16 +1,17 @@
 import logging
-# from shared.sources import upwork # <-- REMOVED: No longer importing Upwork
+# from shared.sources import upwork
 from shared.sources import alljobs
 from shared.sources import fiverr
-from shared.sources import jobmaster # <-- NEW: Import the JobMaster scraper
+from shared.sources import jobmaster
+from shared.sources import janglo
 from shared.email_sender import send_email
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Configuration ---
-# You can move these to environment variables later for better security and flexibility
 EMAIL_RECIPIENTS = ["your_email@example.com"] # REPLACE WITH YOUR EMAIL
 SCRAPE_TERMS = [
+    # English terms (might work for Fiverr and potentially some international listings on Israeli sites)
     "remote piano session",
     "piano for song",
     "midi piano recording",
@@ -18,7 +19,18 @@ SCRAPE_TERMS = [
     "translate English Hebrew",
     "remote virtual assistant",
     "Python developer remote",
-    "data entry clerk remote"
+    "data entry clerk remote",
+    
+    # Hebrew terms (crucial for AllJobs, JobMaster, Janglo)
+    "מפגשי פסנתר מרחוק",
+    "תרגום אנגלית עברית",
+    "מתרגם עברית אנגלית",
+    "עוזרת וירטואלית מהבית",
+    "מזכירה מרחוק",
+    "מפתח פייתון מרחוק",
+    "הקלדת נתונים מהבית",
+    "כתיבת תוכן בעברית", # Example of another common term
+    "תמיכה טכנית מהבית" # Another example
 ]
 
 def run_scraper_and_email():
@@ -33,12 +45,6 @@ def run_scraper_and_email():
     for term in SCRAPE_TERMS:
         logging.info(f"Scraping for term: '{term}'")
 
-        # --- Upwork Scraping (DISABLED) ---
-        # logging.info(f"  Scraping 'upwork' for term: '{term}'")
-        # upwork_jobs = upwork.scrape_upwork(term)
-        # logging.info(f"    Found {len(upwork_jobs)} raw jobs from upwork for '{term}'")
-        # all_found_jobs.extend(upwork_jobs)
-
         # --- AllJobs Scraping ---
         logging.info(f"  Scraping 'alljobs.co.il' for term: '{term}'")
         alljobs_jobs = alljobs.scrape_alljobs(term)
@@ -52,17 +58,20 @@ def run_scraper_and_email():
         all_found_jobs.extend(fiverr_jobs)
 
         # --- JobMaster Scraping ---
-        logging.info(f"  Scraping 'jobmaster.co.il' for term: '{term}'") # <-- NEW: Log for JobMaster
-        jobmaster_jobs = jobmaster.scrape_jobmaster(term) # <-- NEW: Call the JobMaster scraper
-        logging.info(f"    Found {len(jobmaster_jobs)} raw jobs from jobmaster.co.il for '{term}'") # <-- NEW: Log for JobMaster
-        all_found_jobs.extend(jobmaster_jobs) # <-- NEW: Extend with JobMaster jobs
+        logging.info(f"  Scraping 'jobmaster.co.il' for term: '{term}'")
+        jobmaster_jobs = jobmaster.scrape_jobmaster(term)
+        logging.info(f"    Found {len(jobmaster_jobs)} raw jobs from jobmaster.co.il for '{term}'")
+        all_found_jobs.extend(jobmaster_jobs)
 
-        # Add other scrapers here as you implement them (e.g., jobmaster, indeed, etc.)
+        # --- Janglo Scraping ---
+        logging.info(f"  Scraping 'janglo.net' for term: '{term}'")
+        janglo_jobs = janglo.scrape_janglo(term)
+        logging.info(f"    Found {len(janglo_jobs)} raw jobs from janglo.net for '{term}'")
+        all_found_jobs.extend(janglo_jobs)
 
     logging.info(f"Total jobs found across all sources and terms: {len(all_found_jobs)}")
 
     if all_found_jobs:
-        # Format the jobs for the email
         email_body_html = "<h1>New Job Postings Found:</h1><ul>"
         for job in all_found_jobs:
             email_body_html += f"<li><a href='{job['link']}'>{job['title']}</a><br>{job['description'][:200]}...</li>"
@@ -80,7 +89,6 @@ def run_scraper_and_email():
 
     return all_found_jobs
 
-# This part is typically for local testing or if you want to run it directly
 if __name__ == '__main__':
     logging.info("Running scraper manually (for testing purposes).")
     run_scraper_and_email()

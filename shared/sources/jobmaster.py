@@ -89,3 +89,4 @@ def scrape_jobmaster(search_term):
 
     logging.info(f"  Finished scraping JobMaster for '{search_term}'. Found {len(jobs)} raw jobs.")
     return jobs
+
