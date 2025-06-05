@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# Render specific
+.render/
+
+# Logs
+*.log
+logs/
+
+# Operating System
+.DS_Store
+Thumbs.db

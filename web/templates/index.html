@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Bot Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; direction: rtl; text-align: right;}
+        .container { max-width: 900px; margin: auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; margin-bottom: 20px; }
+        p { line-height: 1.6; }
+        .status-box { background: #e7f3ff; border: 1px solid #cce5ff; padding: 20px; border-radius: 8px; margin-top: 25px; display: flex; flex-direction: column; gap: 10px;}
+        .button {
+            background-color: #28a745; /* Green for success */
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 17px;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+            text-align: center;
+            align-self: flex-start; /* Align button to the right in RTL */
+        }
+        .button:hover {
+            background-color: #218838;
+        }
+        .button:disabled {
+            background-color: #6c757d; /* Grey when disabled */
+            cursor: not-allowed;
+        }
+        #message { margin-top: 20px; font-weight: bold; padding: 10px; border-radius: 5px; }
+        .message-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .message-error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .message-info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        footer { text-align: center; margin-top: 40px; color: #777; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ממשק בקרה - בוט סורק משרות</h1>
+        <p>ממשק זה מאפשר לך לנטר ולהפעיל ידנית את תהליך סריקת המשרות.</p>
+
+        <div class="status-box">
+            <h2>סטטוס נוכחי</h2>
+            <p>
+                <span style="font-weight: bold;">מספר משרות רלוונטיות בסריקה האחרונה:</span>
+                <span id="jobCount">{{ job_counts.last_run_jobs }}</span>
+            </p>
+            <p>
+                <span style="font-weight: bold;">זמן סריקה אחרונה (IDT):</span>
+                <span id="lastRunTimestamp">{{ job_counts.last_run_timestamp }}</span>
+            </p>
+            <p>
+                <span style="font-weight: bold;">הודעת סטטוס:</span>
+                <span id="statusMessage">{{ job_counts.status_message }}</span>
+            </p>
+            <p>
+                <span style="font-weight: bold;">סריקות אוטומטיות מתוזמנות:</span>
+                08:00 בבוקר ו-18:00 בערב (לפי שעון ישראל).
+            </p>
+        </div>
+
+        <h2>הפעלה ידנית</h2>
+        <button class="button" onclick="triggerScan()">הפעל סריקה ידנית עכשיו</button>
+        <div id="message" style="display: none;"></div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Job Bot Project</p>
+    </footer>
+
+    <script>
+        // Function to update status on the UI
+        async function updateStatus() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                document.getElementById('jobCount').textContent = data.last_run_jobs;
+                document.getElementById('lastRunTimestamp').textContent = data.last_run_timestamp;
+                document.getElementById('statusMessage').textContent = data.status_message;
+
+                const messageDiv = document.getElementById('message');
+                if (data.status_message.includes("Error")) {
+                    messageDiv.className = 'message-error';
+                } else if (data.status_message.includes("progress")) {
+                    messageDiv.className = 'message-info';
+                } else {
+                    messageDiv.className = 'message-success';
+                }
+                messageDiv.style.display = 'block'; // Ensure message is visible
+                messageDiv.textContent = data.status_message;
+
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                document.getElementById('statusMessage').textContent = 'שגיאת טעינת סטטוס.';
+            }
+        }
+
+        async function triggerScan() {
+            const button = document.querySelector('.button');
+            const messageDiv = document.getElementById('message');
+
+            button.disabled = true;
+            messageDiv.className = 'message-info';
+            messageDiv.textContent = 'מפעיל סריקה... זה עשוי לקחת מספר דקות.';
+            messageDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/trigger_scan', { method: 'POST' });
+                const data = await response.json();
+
+                if (response.status === 202) { // 202 Accepted means it started in background
+                    messageDiv.textContent = data.message;
+                    messageDiv.className = 'message-info';
+                    // Start polling for status updates
+                    pollStatus();
+                } else {
+                    messageDiv.textContent = 'שגיאה: ' + (data.message || 'הפעלה נכשלה.');
+                    messageDiv.className = 'message-error';
+                    button.disabled = false; // Re-enable button on immediate error
+                }
+            } catch (error) {
+                messageDiv.textContent = 'שגיאת רשת או שרת לא זמין: ' + error;
+                messageDiv.className = 'message-error';
+                button.disabled = false;
+            }
+        }
+
+        let statusPollingInterval;
+
+        function pollStatus() {
+            // Clear any existing polling interval to avoid multiple intervals running
+            if (statusPollingInterval) {
+                clearInterval(statusPollingInterval);
+            }
+            statusPollingInterval = setInterval(async () => {
+                const response = await fetch('/status');
+                const data = await response.json();
+                updateStatusUI(data);
+
+                // Stop polling once the scan is complete (not in progress)
+                if (!data.status_message.includes("progress") && !data.status_message.includes("Scanning...")) {
+                    clearInterval(statusPollingInterval);
+                    document.querySelector('.button').disabled = false; // Re-enable button
+                }
+            }, 5000); // Poll every 5 seconds
+        }
+
+        function updateStatusUI(data) {
+            document.getElementById('jobCount').textContent = data.last_run_jobs;
+            document.getElementById('lastRunTimestamp').textContent = data.last_run_timestamp;
+            document.getElementById('statusMessage').textContent = data.status_message;
+
+            const messageDiv = document.getElementById('message');
+            if (data.status_message.includes("Error")) {
+                messageDiv.className = 'message-error';
+            } else if (data.status_message.includes("progress") || data.status_message.includes("Scanning")) {
+                messageDiv.className = 'message-info';
+            } else {
+                messageDiv.className = 'message-success';
+            }
+            messageDiv.textContent = data.status_message;
+            messageDiv.style.display = 'block';
+        }
+
+        // Initial status update when the page loads
+        document.addEventListener('DOMContentLoaded', updateStatus);
+
+    </script>
+</body>
+</html>
