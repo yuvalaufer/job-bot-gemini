@@ -1,7 +1,8 @@
 import logging
-from shared.sources import upwork
+# from shared.sources import upwork # <-- REMOVED: No longer importing Upwork
 from shared.sources import alljobs
-from shared.sources import fiverr # <-- NEW: Import the Fiverr scraper
+from shared.sources import fiverr
+from shared.sources import jobmaster # <-- NEW: Import the JobMaster scraper
 from shared.email_sender import send_email
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -32,11 +33,11 @@ def run_scraper_and_email():
     for term in SCRAPE_TERMS:
         logging.info(f"Scraping for term: '{term}'")
 
-        # --- Upwork Scraping ---
-        logging.info(f"  Scraping 'upwork' for term: '{term}'")
-        upwork_jobs = upwork.scrape_upwork(term)
-        logging.info(f"    Found {len(upwork_jobs)} raw jobs from upwork for '{term}'")
-        all_found_jobs.extend(upwork_jobs)
+        # --- Upwork Scraping (DISABLED) ---
+        # logging.info(f"  Scraping 'upwork' for term: '{term}'")
+        # upwork_jobs = upwork.scrape_upwork(term)
+        # logging.info(f"    Found {len(upwork_jobs)} raw jobs from upwork for '{term}'")
+        # all_found_jobs.extend(upwork_jobs)
 
         # --- AllJobs Scraping ---
         logging.info(f"  Scraping 'alljobs.co.il' for term: '{term}'")
@@ -46,9 +47,15 @@ def run_scraper_and_email():
 
         # --- Fiverr Scraping ---
         logging.info(f"  Scraping 'fiverr.com' for term: '{term}'")
-        fiverr_jobs = fiverr.scrape_fiverr(term) # <-- NEW: Call the Fiverr scraper
+        fiverr_jobs = fiverr.scrape_fiverr(term)
         logging.info(f"    Found {len(fiverr_jobs)} raw gigs from fiverr.com for '{term}'")
         all_found_jobs.extend(fiverr_jobs)
+
+        # --- JobMaster Scraping ---
+        logging.info(f"  Scraping 'jobmaster.co.il' for term: '{term}'") # <-- NEW: Log for JobMaster
+        jobmaster_jobs = jobmaster.scrape_jobmaster(term) # <-- NEW: Call the JobMaster scraper
+        logging.info(f"    Found {len(jobmaster_jobs)} raw jobs from jobmaster.co.il for '{term}'") # <-- NEW: Log for JobMaster
+        all_found_jobs.extend(jobmaster_jobs) # <-- NEW: Extend with JobMaster jobs
 
         # Add other scrapers here as you implement them (e.g., jobmaster, indeed, etc.)
 
