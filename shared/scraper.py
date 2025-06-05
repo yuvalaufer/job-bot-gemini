@@ -1,8 +1,8 @@
 import logging
-# from shared.sources import upwork
+# from shared.sources import upwork # Upwork is disabled due to persistent 403 errors
 from shared.sources import alljobs
-from shared.sources import fiverr
-from shared.sources import jobmaster
+# from shared.sources import fiverr # Fiverr is disabled due to persistent 403 errors
+# from shared.sources import jobmaster # JobMaster is disabled due to persistent 404 errors
 from shared.sources import janglo
 from shared.email_sender import send_email
 
@@ -11,26 +11,36 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # --- Configuration ---
 EMAIL_RECIPIENTS = ["your_email@example.com"] # REPLACE WITH YOUR EMAIL
 SCRAPE_TERMS = [
-    # English terms (might work for Fiverr and potentially some international listings on Israeli sites)
-    "remote piano session",
-    "piano for song",
-    "midi piano recording",
-    "English to Hebrew translation",
-    "translate English Hebrew",
-    "remote virtual assistant",
-    "Python developer remote",
-    "data entry clerk remote",
+    # English terms (for platforms like Fiverr, and potentially international listings)
+    "english hebrew translation",
+    "english to hebrew translator",
+    "hebrew translation",
+    "english hebrew song translation",
+    "song translation hebrew",
+    "music translation hebrew",
+    "piano recording",
+    "pianist recording",
+    "piano session musician",
+    "vocal recording",
+    "vocalist recording",
+    "singer recording",
+    "voice recording",
     
-    # Hebrew terms (crucial for AllJobs, JobMaster, Janglo)
-    "מפגשי פסנתר מרחוק",
+    # Hebrew terms (CRUCIAL for Israeli platforms like AllJobs, Janglo, XPlace, Freelancerim)
     "תרגום אנגלית עברית",
-    "מתרגם עברית אנגלית",
-    "עוזרת וירטואלית מהבית",
-    "מזכירה מרחוק",
-    "מפתח פייתון מרחוק",
-    "הקלדת נתונים מהבית",
-    "כתיבת תוכן בעברית", # Example of another common term
-    "תמיכה טכנית מהבית" # Another example
+    "מתרגם מאנגלית לעברית",
+    "תרגום שירים",
+    "תרגום שירים לאנגלית",
+    "תרגום שירים לעברית",
+    "מתרגם שירים",
+    "הקלטת פסנתר",
+    "פסנתרן לליווי",
+    "פסנתרן להקלטות",
+    "הקלטת שירה",
+    "הקלטת קולות שניים",
+    "הרמוניות שירה",
+    "זמר לאולפן",
+    "זמרת לאולפן"
 ]
 
 def run_scraper_and_email():
@@ -51,30 +61,24 @@ def run_scraper_and_email():
         logging.info(f"    Found {len(alljobs_jobs)} raw jobs from alljobs.co.il for '{term}'")
         all_found_jobs.extend(alljobs_jobs)
 
-        # --- Fiverr Scraping ---
-        logging.info(f"  Scraping 'fiverr.com' for term: '{term}'")
-        fiverr_jobs = fiverr.scrape_fiverr(term)
-        logging.info(f"    Found {len(fiverr_jobs)} raw gigs from fiverr.com for '{term}'")
-        all_found_jobs.extend(fiverr_jobs)
-
-        # --- JobMaster Scraping ---
-        logging.info(f"  Scraping 'jobmaster.co.il' for term: '{term}'")
-        jobmaster_jobs = jobmaster.scrape_jobmaster(term)
-        logging.info(f"    Found {len(jobmaster_jobs)} raw jobs from jobmaster.co.il for '{term}'")
-        all_found_jobs.extend(jobmaster_jobs)
-
         # --- Janglo Scraping ---
         logging.info(f"  Scraping 'janglo.net' for term: '{term}'")
         janglo_jobs = janglo.scrape_janglo(term)
         logging.info(f"    Found {len(janglo_jobs)} raw jobs from janglo.net for '{term}'")
         all_found_jobs.extend(janglo_jobs)
 
+        # Note: Upwork, Fiverr, and JobMaster are temporarily disabled due to persistent scraping issues.
+        # If you'd like to re-enable them in the future, we may need to explore more advanced
+        # scraping techniques (e.g., headless browsers) or debug their specific site structures.
+
     logging.info(f"Total jobs found across all sources and terms: {len(all_found_jobs)}")
 
     if all_found_jobs:
         email_body_html = "<h1>New Job Postings Found:</h1><ul>"
         for job in all_found_jobs:
-            email_body_html += f"<li><a href='{job['link']}'>{job['title']}</a><br>{job['description'][:200]}...</li>"
+            # Ensuring the link is present before creating the anchor tag
+            job_link_html = f"<a href='{job['link']}'>{job['title']}</a>" if job.get('link') else job['title']
+            email_body_html += f"<li>{job_link_html}<br>{job['description'][:200]}...</li>"
         email_body_html += "</ul>"
         
         subject = f"New Job Postings - {len(all_found_jobs)} jobs found!"
