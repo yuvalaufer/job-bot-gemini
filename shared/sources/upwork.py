@@ -64,5 +64,24 @@ def scrape_upwork(search_term):
             if title_tag and link_tag:
                 job_title = title_tag.get_text(strip=True)
                 job_link = link_tag.get('href')
+                # Corrected line 68: Ensure the string literal is properly terminated
                 if job_link and not job_link.startswith('http'):
-                    job_link = "https
+                    job_link = "https://www.upwork.com" + job_link # <--- THIS IS THE CORRECTED LINE
+
+                full_description = description_tag.get_text(strip=True) if description_tag else ""
+
+                jobs.append({
+                    "title": job_title,
+                    "description": full_description,
+                    "link": job_link,
+                })
+            else:
+                logging.debug(f"    Skipping malformed job card on Upwork: {job_card.get_text(strip=True)[:100]}...")
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"  Network error scraping Upwork for '{search_term}': {e}")
+    except Exception as e:
+        logging.error(f"  Parsing or unexpected error for Upwork '{search_term}': {e}", exc_info=True)
+
+    logging.info(f"  Finished scraping Upwork for '{search_term}'. Found {len(jobs)} raw jobs.")
+    return jobs
