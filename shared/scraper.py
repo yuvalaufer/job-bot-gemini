@@ -25,7 +25,7 @@ SCRAPE_TERMS = [
     "vocalist recording",
     "singer recording",
     "voice recording",
-    
+
     # Hebrew terms (CRUCIAL for Israeli platforms like AllJobs, Janglo, XPlace, Freelancerim)
     "תרגום אנגלית עברית",
     "מתרגם מאנגלית לעברית",
@@ -48,7 +48,7 @@ def run_scraper_and_email():
     Orchestrates the scraping process, aggregates jobs, and sends email notifications.
     """
     all_found_jobs = []
-    
+
     logging.info("Starting job scraping process...")
 
     # Iterate over each search term and scrape from defined sources
@@ -80,19 +80,11 @@ def run_scraper_and_email():
             job_link_html = f"<a href='{job['link']}'>{job['title']}</a>" if job.get('link') else job['title']
             email_body_html += f"<li>{job_link_html}<br>{job['description'][:200]}...</li>"
         email_body_html += "</ul>"
-        
+
         subject = f"New Job Postings - {len(all_found_jobs)} jobs found!"
-        
+
         try:
             send_email(EMAIL_RECIPIENTS, subject, email_body_html)
             logging.info(f"Email sent to {', '.join(EMAIL_RECIPIENTS)} with {len(all_found_jobs)} job postings.")
         except Exception as e:
-            logging.error(f"Failed to send email: {e}", exc_info=True)
-    else:
-        logging.info("No new job postings found. Email not sent.")
 
-    return all_found_jobs
-
-if __name__ == '__main__':
-    logging.info("Running scraper manually (for testing purposes).")
-    run_scraper_and_email()
