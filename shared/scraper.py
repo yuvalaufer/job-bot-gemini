@@ -1,15 +1,21 @@
+# shared/scraper.py
+
 import logging
 # from shared.sources import upwork # Upwork is disabled due to persistent 403 errors
 from shared.sources import alljobs
 # from shared.sources import fiverr # Fiverr is disabled due to persistent 403 errors
 # from shared.sources import jobmaster # JobMaster is disabled due to persistent 404 errors
 from shared.sources import janglo
-from shared.email_sender import send_email
+from shared.email_sender import send_email # Ensure this is the correct email sender utility
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # --- Configuration ---
-EMAIL_RECIPIENTS = ["your_email@example.com"] # REPLACE WITH YOUR EMAIL
+# IMPORTANT: Replace "your_email@example.com" with your actual recipient email.
+# For security, consider setting this as an environment variable in Render as well.
+EMAIL_RECIPIENTS = ["your_email@example.com"] 
+
+# Your defined list of search terms (English and Hebrew)
 SCRAPE_TERMS = [
     # English terms (for platforms like Fiverr, and potentially international listings)
     "english hebrew translation",
@@ -25,7 +31,7 @@ SCRAPE_TERMS = [
     "vocalist recording",
     "singer recording",
     "voice recording",
-
+    
     # Hebrew terms (CRUCIAL for Israeli platforms like AllJobs, Janglo, XPlace, Freelancerim)
     "תרגום אנגלית עברית",
     "מתרגם מאנגלית לעברית",
@@ -34,7 +40,7 @@ SCRAPE_TERMS = [
     "תרגום שירים לעברית",
     "מתרגם שירים",
     "הקלטת פסנתר",
-    "פסנתרן לליווי",
+    "פסנתרן ליווי",
     "פסנתרן להקלטות",
     "הקלטת שירה",
     "הקלטת קולות שניים",
@@ -48,7 +54,7 @@ def run_scraper_and_email():
     Orchestrates the scraping process, aggregates jobs, and sends email notifications.
     """
     all_found_jobs = []
-
+    
     logging.info("Starting job scraping process...")
 
     # Iterate over each search term and scrape from defined sources
@@ -80,11 +86,19 @@ def run_scraper_and_email():
             job_link_html = f"<a href='{job['link']}'>{job['title']}</a>" if job.get('link') else job['title']
             email_body_html += f"<li>{job_link_html}<br>{job['description'][:200]}...</li>"
         email_body_html += "</ul>"
-
+        
         subject = f"New Job Postings - {len(all_found_jobs)} jobs found!"
-
+        
         try:
             send_email(EMAIL_RECIPIENTS, subject, email_body_html)
             logging.info(f"Email sent to {', '.join(EMAIL_RECIPIENTS)} with {len(all_found_jobs)} job postings.")
         except Exception as e:
+            logging.error(f"Failed to send email: {e}", exc_info=True)
+    else:
+        logging.info("No new job postings found. Email not sent.")
 
+    return all_found_jobs
+
+if __name__ == '__main__':
+    logging.info("Running scraper manually (for testing purposes).")
+    run_scraper_and_email()
